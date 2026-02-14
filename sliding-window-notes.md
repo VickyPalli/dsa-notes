@@ -134,7 +134,12 @@ Space: O(k+1)
 
 - Expand window using right pointer.
 - If condition breaks, shrink using left pointer.
-- Maintain map of element counts.
+- Maintain a map or counter to track element frequencies.
+- Adjust the window until the condition becomes valid again.
+- Used to find:
+  - Number of valid subarrays
+  - Number of valid substrings
+  - Longest/shortest valid window
 
 ### Pseudocode
 
@@ -193,7 +198,15 @@ Space: O(k+1)
 - Expand with right pointer.
 - Shrink only once when condition breaks.
 - No need to fully shrink every time.
-- Window moves in parallel.
+- The window moves forward in parallel (left and right pointers progress together).
+- Mainly used when we are:
+- Looking for maximum window size
+- Finding longest valid subarray/substring
+
+### Limitation
+
+- This approach cannot be used when we need count of all valid subarrays/substrings
+- It is mainly for optimization problems, not counting problems.
 
 ### Pseudocode
 
