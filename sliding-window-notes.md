@@ -1,561 +1,138 @@
-# Sliding Window Pattern
+# Sliding Window & Prefix Sum — Concise Guide
+
+A compact reference for sliding window and prefix-sum patterns with working implementations.
 
 ---
 
-## Solution Patterns
+## When to use which pattern
 
-1. Brute force solution
-2. Better solution
-3. Optimum solution
-
----
-
-## Hint to Identify Sliding Window Questions
-
-Look for keywords like:
-
-- **Longest sub-array**
-- **Longest sub-string**
-- **Maximum/minimum sum**
-- **At most k elements**
-- **Exactly k elements**
+- Sliding Window: range-based conditions (≤, ≥, at most), arrays with positive or binary values, longest/shortest window, max/min sum.
+- Prefix Sum + Hash Map: exact equality (sum = target), arrays with negatives or mixed values, counting or longest exact-sum subarrays.
+- Binary exact-sum trick: count(sum = k) = count(sum ≤ k) − count(sum ≤ k−1)
 
 ---
 
-## Core Idea of Sliding Window
+## Core idea — Sliding Window
 
-Two pointers:
+- Two pointers: expand (right++), shrink (left++).
+- Maintain running sum or frequency map.
+- Works well when window behavior is monotonic (positive/binary values).
 
-- **Expand window → right pointer (r++)**
-- **Shrink window → left pointer (l++)**
+### Fixed-window example (constant k)
 
----
-
-# Fixed Window Example
-
-## Problem
-
-```
-arr = [6 2 3 4 7 2 1 7 10]
-k = 4  (number of consecutive elements)
-
-Find maximum sum.
-```
-
-Window size is constant (always 4).
-
----
-
-# Variable Window Examples
-
-## Example 1
-
-```
-arr = [1 1 1 0 0 0 1 1 1 1 0 0 1 0 0]
-k = 2 (maximum two flips: 0 → 1)
-
-Find longest consecutive ones.
-```
-
-Equivalent to:
-
-```
-Longest subarray with at most 2 zeros.
-```
-
----
-
-## Example 2
-
-```
-arr = [3 3 3 1 2 1 1 2 1 3 3 2 1]
-
-Find longest subarray with at most 2 unique digits.
-```
-
----
-
-## Example 3
-
-```
-str = aaabacbbeaacd
-
-Find longest substring with at most 2 unique characters.
-```
-
----
-
-# Solution Pattern
-
-## 1. Brute Force Approach
-
-### Example
-
-```
-str = aaabacbbeaacd
-Find longest substring with at most 2 unique characters.
-```
-
-### Pseudocode
+Find max sum of k consecutive elements:
 
 ```js
-maxiLen = 0
-
-for(i = 0 → n) {
-    // set to store unique characters
-    set = {}
-
-    for(j = i → n) {
-        set.add(str[j])
-
-        if(set.size <= k) {
-            maxiLen = max(maxiLen, j - i + 1)
-        } else {
-            break
-        }
-    }
+// Fixed window (concept)
+let sum = 0,
+  maxSum = -Infinity;
+for (let i = 0; i < arr.length; i++) {
+  sum += arr[i];
+  if (i >= k) sum -= arr[i - k];
+  if (i >= k - 1) maxSum = Math.max(maxSum, sum);
 }
-
-return maxiLen
 ```
 
-### Complexity
-
-```
-Time: O(n²)
-Space: O(k+1)
-```
-
----
-
-## 2. Better Solution (Sliding Window)
-
-### Idea
-
-- Expand window using right pointer.
-- If condition breaks, shrink using left pointer.
-- Maintain a map or counter to track element frequencies.
-- Adjust the window until the condition becomes valid again.
-- Sliding window works best when the condition is: Based on a range (e.g., sum ≤ k, at most k distinct characters).
-  - Number of valid subarrays
-  - Number of valid substrings
-- Sliding window usually does not work when count sub arrays:The condition is exact equality (e.g., sum = target)
-  example [1 0 0 1 1 0] target =2 here we are not sure either expand or shrink this process we will loss sub arrays
-
-### Pseudocode
+### Sliding-window template (variable window)
 
 ```js
-map = {}
-maxiLen = 0
-l = 0
-r = 0
+let l = 0, sum = 0, best = 0;
+for (let r = 0; r < arr.length; r++) {
+  // expand
+  sum += arr[r];
 
-while(r < n) {
+  // shrink while invalid
+  while (/* invalid condition */) {
+    sum -= arr[l];
+    l++;
+  }
 
-    // expand
-    map[arr[r]]++
-
-    // shrink until condition valid
-    while(map.size > k) {
-        map[arr[l]]--
-
-        if(map[arr[l]] === 0) {
-            remove map[arr[l]]
-        }
-
-        l++
-    }
-
-    // valid condition
-    if(map.size <= k) {
-        maxiLen = max(maxiLen, r - l + 1)
-    }
-
-    r++
+  // valid window → update answer
+  best = Math.max(best, /* window value e.g., r-l+1 or sum */);
 }
-
-return maxiLen
-```
-
-### Complexity
-
-```
-r moves from 0 → n
-l moves from 0 → n
-
-Total steps:
-n + n = 2n ≈ O(n)
-
-Time: O(n)
-Space: O(k+1)
 ```
 
 ---
 
-## 3. Optimum Solution
-
-### Idea
-
-- Expand with right pointer.
-- Shrink only once when condition breaks.
-- No need to fully shrink every time.
-- The window moves forward in parallel (left and right pointers progress together).
-- Mainly used when we are:
-- Looking for maximum window size
-- Finding longest valid subarray/substring
-
-### Limitation
-
-- This approach cannot be used when we need count of all valid subarrays/substrings
-- It is mainly for optimization problems, not counting problems.
-
-### Pseudocode
+## Binary array: exact sum via "at most" helper
 
 ```js
-map = {}
-maxiLen = 0
-l = 0
-r = 0
-
-while(r < n) {
-
-    // expand
-    map[arr[r]]++
-
-    // shrink once if condition breaks
-    if(map.size > k) {
-        map[arr[l]]--
-
-        if(map[arr[l]] === 0) {
-            remove map[arr[l]]
-        }
-
-        l++
+function countAtMost(arr, k) {
+  if (k < 0) return 0;
+  let l = 0,
+    sum = 0,
+    count = 0;
+  for (let r = 0; r < arr.length; r++) {
+    sum += arr[r];
+    while (sum > k) {
+      sum -= arr[l++];
     }
-
-    // valid condition
-    if(map.size <= k) {
-        maxiLen = max(maxiLen, r - l + 1)
-    }
-
-    r++
+    count += r - l + 1;
+  }
+  return count;
 }
 
-return maxiLen
+function countSubarraysExact(arr, k) {
+  return countAtMost(arr, k) - countAtMost(arr, k - 1);
+}
 ```
 
----
-
-## Important Note (Optimum Logic)
-
-- Once we get a valid `maxiLen`,
-- We keep moving both pointers forward.
-- No need to shrink fully every time.
-- If a larger window exists, it will be found naturally.
+Time: O(n), Space: O(1)
 
 ---
 
-## Complexity
+## Prefix Sum + Hash Map patterns
 
-```
-Time: O(n)
-Space: O(k+1)
-```
+Use when exact equality or negatives are present.
 
-# Sliding Window & Prefix Sum Patterns
+### Count subarrays with sum = target
 
-## Two Major Patterns for Subarray/Substring Problems
-
-1. Sliding Window
-2. Prefix Sum + Hash Map
-
-Choosing the correct pattern depends on:
-
-- Type of condition (range vs exact)
-- Type of values (positive, negative, binary)
-
----
-
-# Sliding Window Pattern
-
-## Core Idea
-
-Use two pointers:
-
-- Expand window → right++
-- Shrink window → left++
-
-Maintain:
-
-- Running sum
-- Frequency map
-- Counter
-- Set
-
----
-
-## When Sliding Window Works
-
-Sliding window works when:
-
-- Condition is range-based
-
-Examples:
-
-- Sum ≤ k
-- At most k distinct elements
-- At most k zeros
-- Window length constraints
-
-### Works Best When Array Contains
-
-- Only positive numbers
-- Binary values (0 and 1)
-
-Reason:
-
-- Expanding window → sum increases
-- Shrinking window → sum decreases
-- Window behaves predictably
-
----
-
-## Common Sliding Window Problems
-
-### Optimization Problems
-
-- Longest subarray
-- Shortest subarray
-- Maximum sum
-- Minimum window
-
-### Counting Problems (Range-Based)
-
-- Number of subarrays with sum ≤ k
-- Number of substrings with at most k distinct characters
-
----
-
-## When Sliding Window Fails
-
-Sliding window fails when:
-
-1. Array contains negative numbers
-2. Condition requires exact equality
-   sum = target
-
-Example:
-arr = [2, -1, 2]
-target = 3
-
-Problem:
-
-- Expanding does not always increase sum.
-- Shrinking does not always decrease sum.
-- Window becomes unpredictable.
-
-So sliding window logic breaks.
-
----
-
-## Special Case: Binary Arrays
-
-For binary arrays (0 and 1), sliding window can still be used for exact sums:
-
-count(sum = k) = count(sum ≤ k) − count(sum ≤ k−1)
-
-This converts exact equality into a range condition.
-
----
-
-# Prefix Sum + Hash Map Pattern
-
-## Core Idea
-
-Track cumulative sums and store:
-
-- Frequency (for counting)
-- First index (for longest length)
-
-At each step:
-currentSum − target = previousSum
-
-If that previous sum exists:
-
-- A valid subarray is found.
-
----
-
-## When Prefix Sum Works
-
-Prefix sum works for:
-
-- Exact sum conditions
-- Negative numbers
-- Positive numbers
-- Mixed values
-- Binary arrays
-
-# Pattern Selection Guide
-
-## Use Sliding Window When
-
-- Condition is:
-  - ≤
-  - ≥
-  - At most
-  - At least
-- Array has:
-  - Positive values
-  - Binary values
-- Need:
-  - Longest window
-  - Shortest window
-  - Count with range condition
-
----
-
-## Use Prefix Sum When
-
-- Condition is exact equality (=)
-- Need:
-  - Count subarrays with sum = target
-  - Longest subarray with sum = target
-- Array contains:
-  - Negative numbers
-  - Mixed values
-
----
-
-# Prefix Sum Solution Patterns
-
-## Pattern 1: Count Subarrays with Sum = Target
-
-### Use When
-
-- Need number of subarrays
-- Condition is sum = target
-- Works with:
-  - Positive
-  - Negative
-  - Mixed arrays
-  - Binary arrays
-
-### Logic
-
-1. Maintain running sum.
-2. Store frequency of each prefix sum in a map.
-3. At each index:
-   remaining = currentSum − target
-4. If remaining exists:
-   add its frequency to count.
-
-### Code (JavaScript)
-
+```js
 function countSubarrays(arr, target) {
-let map = new Map([[0, 1]]);
-let sum = 0;
-let count = 0;
-
-for (let i = 0; i < arr.length; i++) {
-sum += arr[i];
-
-    let remaining = sum - target;
-    if (map.has(remaining)) {
-      count += map.get(remaining);
-    }
-
+  let map = new Map([[0, 1]]);
+  let sum = 0,
+    count = 0;
+  for (let x of arr) {
+    sum += x;
+    let rem = sum - target;
+    if (map.has(rem)) count += map.get(rem);
     map.set(sum, (map.get(sum) || 0) + 1);
-
+  }
+  return count;
 }
+```
 
-return count;
-}
+### Longest subarray with sum = target
 
-### Complexity
-
-Time: O(n)  
-Space: O(n)
-
----
-
-## Pattern 2: Maximum Length Subarray with Sum = Target
-
-### Use When
-
-- Need longest subarray
-- Condition is sum = target
-- Works with:
-  - Positive
-  - Negative
-  - Mixed arrays
-
-### Logic
-
-1. Maintain running sum.
-2. Store first occurrence of each prefix sum.
-3. At each index:
-   remaining = currentSum − target
-4. If remaining exists:
-   length = currentIndex − storedIndex
-5. Update maximum length.
-
-### Code (JavaScript)
-
+```js
 function longestSubarray(arr, target) {
-let map = new Map();
-let sum = 0;
-let maxLen = 0;
-
-for (let i = 0; i < arr.length; i++) {
-sum += arr[i];
-
-    if (sum === target) {
-      maxLen = i + 1;
-    }
-
-    let remaining = sum - target;
-    if (map.has(remaining)) {
-      let prevIndex = map.get(remaining);
-      maxLen = Math.max(maxLen, i - prevIndex);
-    }
-
-    if (!map.has(sum)) {
-      map.set(sum, i);
-    }
-
+  let map = new Map(); // prefixSum -> firstIndex
+  let sum = 0,
+    maxLen = 0;
+  for (let i = 0; i < arr.length; i++) {
+    sum += arr[i];
+    if (sum === target) maxLen = i + 1;
+    let rem = sum - target;
+    if (map.has(rem)) maxLen = Math.max(maxLen, i - map.get(rem));
+    if (!map.has(sum)) map.set(sum, i);
+  }
+  return maxLen;
 }
+```
 
-return maxLen;
-}
-
-### Complexity
-
-Time: O(n)  
-Space: O(n)
+Time: O(n), Space: O(n)
 
 ---
 
-# Key Difference Between the Two Prefix Sum Patterns
+## Quick checklist
 
-| Problem Type     | Map Stores                | Purpose                   |
-| ---------------- | ------------------------- | ------------------------- |
-| Count subarrays  | Frequency of prefix sums  | Count all valid subarrays |
-| Longest subarray | First index of prefix sum | Get maximum length        |
+- Sliding window: choose when condition is "range-like" and array values are non-negative or binary.
+- Prefix sum: choose when condition is exact (=) or array contains negatives.
+- For counting exact sums in binary arrays, convert to two "at most" queries.
 
 ---
 
-# Quick Interview Cheat Sheet
+## Complexity summary
 
-## Sliding Window
-
-- Range-based conditions
-- Positive or binary arrays
-- Longest/shortest window
-- Sum ≤ k
-
-## Prefix Sum
-
-- Exact equality
-- Negative or mixed arrays
-- Count or longest subarray with sum = target
+- Sliding window: O(n) time, O(1..k) space depending on counters.
+- Prefix-sum hash map: O(n) time, O(n) space.
